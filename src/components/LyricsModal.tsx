@@ -14,14 +14,17 @@ export default function LyricsModal({ isOpen, onClose }: LyricsModalProps) {
 
   if (!isOpen || !currentSong) return null;
 
-  const lyrics = currentSong.lyrics || [{ time: 0, text: 'Đang cập nhật lời bài hát tiếng Việt...' }];
+  const lyrics = currentSong.lyrics || [
+    { time: 0, text: '🎵 Đang đồng bộ lời bài hát tiếng Việt...' },
+    { time: 10, text: 'Giai điệu dịu êm vỗ về giấc mơ...' }
+  ];
 
   return (
     <div className="fixed inset-0 bg-black/90 backdrop-blur-xl z-[100] flex flex-col p-6 text-white transition-all">
       <div className="flex justify-between items-center mb-6">
         <div className="flex items-center space-x-2">
           <Mic2 className="text-[#1DB954]" size={24} />
-          <h3 className="text-lg font-bold">Lời Bài Hát Đồng Bộ</h3>
+          <h3 className="text-lg font-bold">Lời Bài Hát</h3>
         </div>
         <button onClick={onClose} className="p-2 rounded-full bg-white/10 hover:bg-white/20">
           <X size={20} />

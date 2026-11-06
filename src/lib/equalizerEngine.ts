@@ -5,7 +5,7 @@ class EqualizerEngine {
   private isInit = false;
 
   public init(audioElement: HTMLAudioElement) {
-    if (this.isInit) return;
+    if (this.isInit || typeof window === 'undefined') return;
     try {
       const AudioCtx = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
       this.ctx = new AudioCtx();
@@ -20,7 +20,6 @@ class EqualizerEngine {
         return filter;
       });
 
-      // Chain nodes: Source -> Band1 -> Band2 ... -> Destination
       let current: AudioNode = this.sourceNode;
       this.bands.forEach((band) => {
         current.connect(band);
@@ -29,7 +28,7 @@ class EqualizerEngine {
       current.connect(this.ctx.destination);
       this.isInit = true;
     } catch (e) {
-      console.warn('Equalizer AudioContext failed to init:', e);
+      console.warn('Equalizer AudioContext skipped:', e);
     }
   }
 

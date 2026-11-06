@@ -2,7 +2,7 @@ import { create } from 'zustand';
 import { YTSong, getFallbackStreamUrl } from './youtubeApi';
 import { eqEngine } from './equalizerEngine';
 
-interface Playlist {
+export interface Playlist {
   id: string;
   name: string;
   songs: YTSong[];
@@ -26,7 +26,6 @@ interface AudioState {
   searchResults: YTSong[];
   isSearching: boolean;
 
-  // Actions
   setQuality: (quality: 'low' | 'standard' | 'high') => void;
   playSong: (song: YTSong, newQueue?: YTSong[]) => void;
   togglePlay: () => void;
@@ -39,7 +38,6 @@ interface AudioState {
   toggleShuffle: () => void;
   toggleFavorite: (song: YTSong) => void;
   createPlaylist: (name: string) => void;
-  addSongToPlaylist: (playlistId: string, song: YTSong) => void;
   removePlaylist: (playlistId: string) => void;
   setSearchQuery: (query: string) => void;
   setMood: (mood: string) => void;
@@ -66,15 +64,14 @@ export const useAudioStore = create<AudioState>((set, get) => {
     audio.onerror = () => {
       const current = get().currentSong;
       if (current && audio) {
-        // Thử lại bằng luồng Backup stream nếu luồng chính bị chặn
         audio.src = getFallbackStreamUrl(current.id);
-        audio.play().catch(e => console.error("Playback fallback failed:", e));
+        audio.play().catch(e => console.error("Fallback audio playback error:", e));
       }
     };
   }
 
   const updateMediaSession = (song: YTSong) => {
-    if ('mediaSession' in navigator && song) {
+    if (typeof window !== 'undefined' && 'mediaSession' in navigator && song) {
       navigator.mediaSession.metadata = new MediaMetadata({
         title: song.title,
         artist: song.artist,
@@ -119,8 +116,7 @@ export const useAudioStore = create<AudioState>((set, get) => {
         set({ currentSong: song, isPlaying: true });
         if (newQueue) set({ queue: newQueue });
         updateMediaSession(song);
-      }).catch(err => {
-        console.warn("Thử luồng âm thanh dự phòng...");
+      }).catch(() => {
         if (audio) {
           audio.src = getFallbackStreamUrl(song.id);
           audio.play().then(() => {
@@ -200,15 +196,6 @@ export const useAudioStore = create<AudioState>((set, get) => {
 
     createPlaylist: (name) => set((state) => ({
       playlists: [...state.playlists, { id: Date.now().toString(), name, songs: [] }]
-    })),
-
-    addSongToPlaylist: (playlistId, song) => set((state) => ({
-      playlists: state.playlists.map(pl => {
-        if (pl.id === playlistId && !pl.songs.some(s => s.id === song.id)) {
-          return { ...pl, songs: [...pl.songs, song] };
-        }
-        return pl;
-      })
     })),
 
     removePlaylist: (playlistId) => set((state) => ({

@@ -2,27 +2,33 @@
 
 import React from 'react';
 import { useAudioStore } from '@/lib/audioEngine';
-import { VIETNAMESE_SONGS } from '@/lib/musicData';
+import { searchYouTubeMusic } from '@/lib/youtubeApi';
 import { Sparkles } from 'lucide-react';
 
 export const VN_MOODS = [
-  { id: 'all', label: '🔥 Tất cả Nhạc Việt', color: 'from-green-600 to-emerald-900' },
-  { id: 'chill', label: '☕ Thư giãn / Lofi', color: 'from-blue-600 to-indigo-900' },
-  { id: 'coffee', label: '🍂 Cà phê sáng', color: 'from-amber-600 to-orange-900' },
-  { id: 'energy', label: '⚡ Năng lượng / EDM', color: 'from-yellow-500 to-red-700' },
-  { id: 'sad', label: '🌧️ Tâm trạng / Mưa', color: 'from-gray-600 to-slate-900' },
-  { id: 'night', label: '🌙 Đêm đô thị R&B', color: 'from-purple-600 to-pink-900' },
+  { id: 'all', label: '🔥 Tất cả Nhạc Việt', color: 'from-green-600 to-emerald-900', query: 'nhac viet nam hot' },
+  { id: 'chill', label: '☕ Thư giãn / Lofi', color: 'from-blue-600 to-indigo-900', query: 'nhac lofi viet nam chill' },
+  { id: 'coffee', label: '🍂 Cà phê sáng', color: 'from-amber-600 to-orange-900', query: 'nhac vu indie viet nam' },
+  { id: 'energy', label: '⚡ Năng lượng / EDM', color: 'from-yellow-500 to-red-700', query: 'nhac son tung m-tp remix' },
+  { id: 'sad', label: '🌧️ Tâm trạng / Mưa', color: 'from-gray-600 to-slate-900', query: 'nhac tam trang mua viet nam' },
+  { id: 'night', label: '🌙 Đêm đô thị R&B', color: 'from-purple-600 to-pink-900', query: 'nhac rb viet nam ve dem' },
 ];
 
 export default function MoodSelector() {
-  const { mood, setMood, playSong } = useAudioStore();
+  const { mood, setMood, playSong, setSearchResults, setIsSearching } = useAudioStore();
 
-  const handleMoodSelect = (selectedMood: string) => {
-    setMood(selectedMood);
-    const filtered = selectedMood === 'all' 
-      ? VIETNAMESE_SONGS 
-      : VIETNAMESE_SONGS.filter(s => s.mood === selectedMood);
-    if (filtered.length > 0) playSong(filtered[0], filtered);
+  const handleMoodSelect = async (selectedMood: typeof VN_MOODS[0]) => {
+    setMood(selectedMood.id);
+    setIsSearching(true);
+    try {
+      const results = await searchYouTubeMusic(selectedMood.query);
+      setSearchResults(results);
+      if (results.length > 0) playSong(results[0], results);
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setIsSearching(false);
+    }
   };
 
   return (
@@ -36,7 +42,7 @@ export default function MoodSelector() {
         {VN_MOODS.map((m) => (
           <button
             key={m.id}
-            onClick={() => handleMoodSelect(m.id)}
+            onClick={() => handleMoodSelect(m)}
             className={`h-20 rounded-2xl p-3 bg-gradient-to-br ${m.color} flex flex-col justify-end text-left shadow-lg hover:scale-105 transition-all ${
               mood === m.id ? 'ring-2 ring-white scale-105 shadow-green-500/20' : 'opacity-85 hover:opacity-100'
             }`}

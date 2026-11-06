@@ -7,9 +7,9 @@ export interface YTSong {
   duration: number;
   mood: string;
   genre: string;
+  lyrics?: { time: number; text: string }[];
 }
 
-// Danh sách các Instance API Invidious/Piped công khai mượt nhất
 const API_ENDPOINTS = [
   'https://inv.tux.rainside.sk/api/v1',
   'https://invidious.nerdvpn.de/api/v1',
@@ -30,20 +30,19 @@ export async function searchYouTubeMusic(query: string): Promise<YTSong[]> {
       const data = await res.json();
       
       return data.slice(0, 15).map((item: any) => {
-        // Lấy ảnh bìa chất lượng cao
         const thumbnails = item.videoThumbnails || [];
         const highThumb = thumbnails.find((t: any) => t.quality === 'high') || thumbnails[0];
         const albumCover = highThumb ? highThumb.url : `https://i.ytimg.com/vi/${item.videoId}/hqdefault.jpg`;
 
         return {
           id: item.videoId,
-          title: item.title,
-          artist: item.author || 'Ca sĩ Việt Nam',
+          title: item.title || 'Bài hát Việt Nam',
+          artist: item.author || 'Nhiều ca sĩ',
           albumCover: albumCover,
-          streamUrl: `https://pipedproxy.kavin.rocks/videoplayback?id=${item.videoId}&itag=140`, // itag=140 là luồng Audio AAC 128kbps siêu tiết kiệm 5G
+          streamUrl: `https://pipedproxy.kavin.rocks/videoplayback?id=${item.videoId}&itag=140`,
           duration: item.lengthSeconds || 180,
           mood: 'all',
-          genre: 'Nhạc Việt'
+          genre: 'V-Pop'
         };
       });
     } catch (err) {
@@ -51,11 +50,9 @@ export async function searchYouTubeMusic(query: string): Promise<YTSong[]> {
     }
   }
 
-  // Fallback direct Audio Proxy if all endpoints fail
   return [];
 }
 
 export function getFallbackStreamUrl(videoId: string): string {
-  // Trực tiếp proxy luồng audio để đảm bảo 100% phát được nhạc
   return `https://yewtu.be/latest_version?id=${videoId}&itag=140`;
 }

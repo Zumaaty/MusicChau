@@ -5,10 +5,9 @@ import MoodSelector from '@/components/MoodSelector';
 import Player from '@/components/Player';
 import { useAudioStore } from '@/lib/audioEngine';
 import { searchYouTubeMusic, YTSong } from '@/lib/youtubeApi';
-import { Play, User, Music, Search, Heart, PlusCircle, Trash2, Loader2, Sparkles } from 'lucide-react';
+import { Play, User, Music, Search, Heart, PlusCircle, Trash2, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 
-// Danh sách bài hát gợi ý mặc định ban đầu
 const INITIAL_VIETNAMESE_SONGS: YTSong[] = [
   {
     id: 'TuAnHung-Phale',
@@ -45,7 +44,7 @@ const INITIAL_VIETNAMESE_SONGS: YTSong[] = [
 export default function HomePage() {
   const { 
     playSong, currentSong, isPlaying, 
-    searchQuery, setSearchQuery, mood, 
+    searchQuery, setSearchQuery, 
     searchResults, setSearchResults, isSearching, setIsSearching,
     favorites, playlists, createPlaylist, removePlaylist
   } = useAudioStore();
@@ -53,7 +52,6 @@ export default function HomePage() {
   const [activeTab, setActiveTab] = useState<'home' | 'favorites' | 'playlists'>('home');
   const [newPlName, setNewPlName] = useState('');
 
-  // Tự động Tìm kiếm trực tiếp trên YouTube Music khi gõ từ khóa
   useEffect(() => {
     if (!searchQuery.trim()) {
       setSearchResults(INITIAL_VIETNAMESE_SONGS);
@@ -70,27 +68,6 @@ export default function HomePage() {
     return () => clearTimeout(timer);
   }, [searchQuery, setSearchResults, setIsSearching]);
 
-  // Tìm kiếm theo Mood
-  const handleMoodSelect = async (selectedMood: string) => {
-    if (selectedMood === 'all') {
-      setSearchResults(INITIAL_VIETNAMESE_SONGS);
-      return;
-    }
-    const moodKeywords: Record<string, string> = {
-      chill: 'nhac lofi viet nam chill',
-      coffee: 'nhac vu indie viet nam',
-      energy: 'nhac son tung m-tp remix',
-      sad: 'nhac tam trang mua viet nam',
-      night: 'nhac rb viet nam ve dem',
-    };
-
-    const keyword = moodKeywords[selectedMood] || 'nhac viet nam hot';
-    setIsSearching(true);
-    const results = await searchYouTubeMusic(keyword);
-    setSearchResults(results);
-    setIsSearching(false);
-  };
-
   const handleCreatePL = (e: React.FormEvent) => {
     e.preventDefault();
     if (!newPlName.trim()) return;
@@ -102,7 +79,6 @@ export default function HomePage() {
 
   return (
     <main className="min-h-screen max-w-7xl mx-auto px-4 py-6 pb-36">
-      {/* Header */}
       <header className="flex flex-col md:flex-row justify-between items-center gap-4 mb-8">
         <div className="flex items-center space-x-3">
           <div className="w-12 h-12 bg-[#1DB954] rounded-full flex items-center justify-center shadow-lg shadow-green-500/30">
@@ -110,11 +86,10 @@ export default function HomePage() {
           </div>
           <div>
             <h1 className="text-2xl font-black tracking-tight">Moodify Việt Nam</h1>
-            <p className="text-xs text-gray-400">Tìm kiếm & Nghe nhạc YouTube Music không quảng cáo</p>
+            <p className="text-xs text-gray-400">Nghe nhạc YouTube Music không quảng cáo • Tối ưu 5G</p>
           </div>
         </div>
 
-        {/* Ô Tìm Kiếm YouTube Music */}
         <div className="relative w-full md:w-96">
           <Search className="absolute left-3.5 top-3 text-gray-400" size={18} />
           <input 
@@ -138,7 +113,6 @@ export default function HomePage() {
         </Link>
       </header>
 
-      {/* Tabs */}
       <div className="flex space-x-3 mb-6 border-b border-white/10 pb-3">
         <button 
           onClick={() => setActiveTab('home')}
@@ -164,7 +138,6 @@ export default function HomePage() {
         <>
           <MoodSelector />
 
-          {/* Song Grid */}
           <section className="mt-8">
             <h2 className="text-xl font-bold mb-4 flex items-center justify-between">
               <span>{searchQuery ? `Kết quả tìm kiếm cho "${searchQuery}"` : 'Bài Hát Gợi Ý Hàng Đầu'}</span>
@@ -174,7 +147,7 @@ export default function HomePage() {
             {isSearching ? (
               <div className="flex items-center justify-center py-20 text-gray-400 space-x-2">
                 <Loader2 className="animate-spin text-[#1DB954]" size={24} />
-                <span>Đang tìm nhạc trên kho dữ liệu YouTube Music...</span>
+                <span>Đang tìm kiếm nhạc YouTube...</span>
               </div>
             ) : (
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
@@ -191,9 +164,6 @@ export default function HomePage() {
                           src={song.albumCover} 
                           alt={song.title} 
                           className="w-full aspect-square object-cover rounded-xl shadow-md"
-                          onError={(e) => {
-                            (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=500&q=80';
-                          }}
                         />
                         <button className={`absolute right-2 bottom-2 w-10 h-10 rounded-full bg-[#1DB954] text-black flex items-center justify-center shadow-xl opacity-0 group-hover:opacity-100 transition ${
                           isCurrent && isPlaying ? 'opacity-100' : ''
@@ -218,10 +188,10 @@ export default function HomePage() {
         <section className="mt-4">
           <h2 className="text-xl font-bold mb-4 flex items-center space-x-2">
             <Heart className="text-red-500 fill-red-500" size={22} />
-            <span>Nhạc Việt Yêu Thích</span>
+            <span>Nhạc Yêu Thích</span>
           </h2>
           {favorites.length === 0 ? (
-            <p className="text-gray-400 text-sm">Chưa có bài hát nào được lưu.</p>
+            <p className="text-gray-400 text-sm">Chưa có bài hát nào được thả tim.</p>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
               {favorites.map((song) => (

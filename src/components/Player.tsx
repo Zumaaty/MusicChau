@@ -57,11 +57,9 @@ export default function Player() {
       <LyricsModal isOpen={showLyrics} onClose={() => setShowLyrics(false)} />
       <EqualizerModal isOpen={showEQ} onClose={() => setShowEQ(false)} />
 
-      {/* Mini Player Bottom Bar */}
       <div className={`fixed bottom-0 left-0 right-0 bg-black/95 backdrop-blur-xl border-t border-white/10 px-4 py-3 z-50 transition-all ${
         isExpanded ? 'h-full flex flex-col justify-between py-8 px-6' : ''
       }`}>
-        {/* Progress Bar */}
         <div 
           className="w-full bg-white/20 h-1.5 rounded-full cursor-pointer mb-3 relative overflow-hidden"
           onClick={(e) => {
@@ -74,7 +72,6 @@ export default function Player() {
 
         <div className={`flex items-center justify-between max-w-7xl mx-auto w-full ${isExpanded ? 'flex-col justify-around flex-1' : ''}`}>
           
-          {/* Song Info */}
           <div className={`flex items-center space-x-4 ${isExpanded ? 'flex-col space-x-0 space-y-4 text-center' : 'w-1/3'}`}>
             <img 
               src={currentSong.albumCover} 
@@ -91,7 +88,6 @@ export default function Player() {
             </button>
           </div>
 
-          {/* Main Controls */}
           <div className={`flex flex-col items-center justify-center space-y-2 ${isExpanded ? 'w-full my-6' : 'w-1/3'}`}>
             <div className="flex items-center space-x-6">
               <button onClick={toggleShuffle} className={`transition ${isShuffle ? 'text-[#1DB954]' : 'text-gray-400 hover:text-white'}`}>
@@ -114,33 +110,19 @@ export default function Player() {
             )}
           </div>
 
-          {/* Extra Tools (Volume, EQ, Lyrics, Offline, Quality) */}
           <div className={`flex items-center justify-end space-x-3 ${isExpanded ? 'w-full justify-center space-x-6' : 'w-1/3'}`}>
-            <button 
-              onClick={() => setShowLyrics(true)} 
-              className="text-gray-400 hover:text-[#1DB954] p-1 transition" 
-              title="Xem Lời Bài Hát"
-            >
+            <button onClick={() => setShowLyrics(true)} className="text-gray-400 hover:text-[#1DB954] p-1 transition" title="Xem Lời Bài Hát">
               <Mic2 size={18} />
             </button>
 
-            <button 
-              onClick={() => setShowEQ(true)} 
-              className="text-gray-400 hover:text-[#1DB954] p-1 transition" 
-              title="Chỉnh âm Equalizer"
-            >
+            <button onClick={() => setShowEQ(true)} className="text-gray-400 hover:text-[#1DB954] p-1 transition" title="Chỉnh âm Equalizer">
               <Sliders size={18} />
             </button>
 
-            <button 
-              onClick={handleDownloadToggle} 
-              className={`p-1 transition ${isDownloaded ? 'text-[#1DB954]' : 'text-gray-400 hover:text-white'}`}
-              title={isDownloaded ? 'Đã tải offline' : 'Tải về nghe offline'}
-            >
+            <button onClick={handleDownloadToggle} className={`p-1 transition ${isDownloaded ? 'text-[#1DB954]' : 'text-gray-400 hover:text-white'}`}>
               {isDownloaded ? <CheckCircle size={18} /> : <Download size={18} />}
             </button>
 
-            {/* Volume Control */}
             <div className="hidden md:flex items-center space-x-2">
               <button onClick={toggleMute} className="text-gray-400 hover:text-white">
                 {isMuted || volume === 0 ? <VolumeX size={18} /> : <Volume2 size={18} />}
@@ -156,7 +138,6 @@ export default function Player() {
               />
             </div>
 
-            {/* Quality Switcher */}
             <div className="relative">
               <button 
                 onClick={() => setShowQualityMenu(!showQualityMenu)} 

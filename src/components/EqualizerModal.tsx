@@ -11,8 +11,8 @@ interface EqualizerModalProps {
 
 const PRESETS = [
   { name: 'Mặc định', gains: [0, 0, 0, 0, 0] },
-  { name: '🔥 Bass Boost (Siêu trầm)', gains: [8, 5, 0, 0, 2] },
-  { name: '🎤 Vocal Boost (Tăng lời ca sĩ)', gains: [-2, 2, 6, 4, 1] },
+  { name: '🔥 Bass Boost', gains: [8, 5, 0, 0, 2] },
+  { name: '🎤 Vocal Boost', gains: [-2, 2, 6, 4, 1] },
   { name: '🎸 Acoustic Việt', gains: [3, 2, 4, 3, 2] },
   { name: '🎧 Pop / EDM', gains: [6, 3, 0, 4, 5] },
 ];
@@ -37,7 +37,7 @@ export default function EqualizerModal({ isOpen, onClose }: EqualizerModalProps)
     eqEngine.applyPreset(preset.gains);
   };
 
-  const freqs = ['60Hz (Bass)', '230Hz', '910Hz (Mid)', '4kHz', '14kHz (Treble)'];
+  const freqs = ['60Hz', '230Hz', '910Hz', '4kHz', '14kHz'];
 
   return (
     <div className="fixed inset-0 bg-black/85 backdrop-blur-md z-[100] flex items-center justify-center p-4">
@@ -52,7 +52,6 @@ export default function EqualizerModal({ isOpen, onClose }: EqualizerModalProps)
           </button>
         </div>
 
-        {/* Presets */}
         <div className="flex flex-wrap gap-2 mb-6">
           {PRESETS.map((p) => (
             <button
@@ -67,7 +66,6 @@ export default function EqualizerModal({ isOpen, onClose }: EqualizerModalProps)
           ))}
         </div>
 
-        {/* Sliders */}
         <div className="grid grid-cols-5 gap-2 text-center my-4">
           {gains.map((gain, idx) => (
             <div key={idx} className="flex flex-col items-center space-y-3">

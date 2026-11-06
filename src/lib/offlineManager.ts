@@ -1,7 +1,7 @@
 const CACHE_NAME = 'moodify-offline-songs-v1';
 
 export async function saveSongOffline(songUrl: string): Promise<boolean> {
-  if (!('caches' in window)) return false;
+  if (typeof window === 'undefined' || !('caches' in window)) return false;
   try {
     const cache = await caches.open(CACHE_NAME);
     await cache.add(songUrl);
@@ -13,7 +13,7 @@ export async function saveSongOffline(songUrl: string): Promise<boolean> {
 }
 
 export async function isSongDownloaded(songUrl: string): Promise<boolean> {
-  if (!('caches' in window)) return false;
+  if (typeof window === 'undefined' || !('caches' in window)) return false;
   try {
     const cache = await caches.open(CACHE_NAME);
     const match = await cache.match(songUrl);
@@ -24,7 +24,7 @@ export async function isSongDownloaded(songUrl: string): Promise<boolean> {
 }
 
 export async function removeSongOffline(songUrl: string): Promise<boolean> {
-  if (!('caches' in window)) return false;
+  if (typeof window === 'undefined' || !('caches' in window)) return false;
   try {
     const cache = await caches.open(CACHE_NAME);
     return await cache.delete(songUrl);
