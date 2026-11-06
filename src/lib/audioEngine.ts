@@ -1,15 +1,15 @@
 import { create } from 'zustand';
-import { Song, VIETNAMESE_SONGS } from './musicData';
+import { YTSong, getFallbackStreamUrl } from './youtubeApi';
 import { eqEngine } from './equalizerEngine';
 
 interface Playlist {
   id: string;
   name: string;
-  songs: Song[];
+  songs: YTSong[];
 }
 
 interface AudioState {
-  currentSong: Song | null;
+  currentSong: YTSong | null;
   isPlaying: boolean;
   quality: 'low' | 'standard' | 'high';
   currentTime: number;
@@ -18,15 +18,17 @@ interface AudioState {
   isMuted: boolean;
   isLoop: boolean;
   isShuffle: boolean;
-  queue: Song[];
-  favorites: Song[];
+  queue: YTSong[];
+  favorites: YTSong[];
   playlists: Playlist[];
   searchQuery: string;
   mood: string;
+  searchResults: YTSong[];
+  isSearching: boolean;
 
   // Actions
   setQuality: (quality: 'low' | 'standard' | 'high') => void;
-  playSong: (song: Song, newQueue?: Song[]) => void;
+  playSong: (song: YTSong, newQueue?: YTSong[]) => void;
   togglePlay: () => void;
   nextSong: () => void;
   prevSong: () => void;
@@ -35,12 +37,14 @@ interface AudioState {
   toggleMute: () => void;
   toggleLoop: () => void;
   toggleShuffle: () => void;
-  toggleFavorite: (song: Song) => void;
+  toggleFavorite: (song: YTSong) => void;
   createPlaylist: (name: string) => void;
-  addSongToPlaylist: (playlistId: string, song: Song) => void;
+  addSongToPlaylist: (playlistId: string, song: YTSong) => void;
   removePlaylist: (playlistId: string) => void;
   setSearchQuery: (query: string) => void;
   setMood: (mood: string) => void;
+  setSearchResults: (results: YTSong[]) => void;
+  setIsSearching: (val: boolean) => void;
 }
 
 export const useAudioStore = create<AudioState>((set, get) => {
@@ -58,14 +62,23 @@ export const useAudioStore = create<AudioState>((set, get) => {
         get().nextSong();
       }
     };
+
+    audio.onerror = () => {
+      const current = get().currentSong;
+      if (current && audio) {
+        // Thử lại bằng luồng Backup stream nếu luồng chính bị chặn
+        audio.src = getFallbackStreamUrl(current.id);
+        audio.play().catch(e => console.error("Playback fallback failed:", e));
+      }
+    };
   }
 
-  const updateMediaSession = (song: Song) => {
+  const updateMediaSession = (song: YTSong) => {
     if ('mediaSession' in navigator && song) {
       navigator.mediaSession.metadata = new MediaMetadata({
         title: song.title,
         artist: song.artist,
-        album: 'Moodify Việt Nam',
+        album: 'Moodify Music',
         artwork: [{ src: song.albumCover, sizes: '512x512', type: 'image/jpeg' }],
       });
       navigator.mediaSession.setActionHandler('play', () => get().togglePlay());
@@ -85,11 +98,13 @@ export const useAudioStore = create<AudioState>((set, get) => {
     isMuted: false,
     isLoop: false,
     isShuffle: false,
-    queue: VIETNAMESE_SONGS,
+    queue: [],
     favorites: [],
-    playlists: [{ id: 'fav-pl', name: 'Nhạc Việt Yêu Thích 💖', songs: [] }],
+    playlists: [{ id: 'fav-pl', name: 'Nhạc Yêu Thích 💖', songs: [] }],
     searchQuery: '',
     mood: 'all',
+    searchResults: [],
+    isSearching: false,
 
     setQuality: (quality) => set({ quality }),
 
@@ -104,7 +119,17 @@ export const useAudioStore = create<AudioState>((set, get) => {
         set({ currentSong: song, isPlaying: true });
         if (newQueue) set({ queue: newQueue });
         updateMediaSession(song);
-      }).catch(err => console.error("Lỗi phát nhạc:", err));
+      }).catch(err => {
+        console.warn("Thử luồng âm thanh dự phòng...");
+        if (audio) {
+          audio.src = getFallbackStreamUrl(song.id);
+          audio.play().then(() => {
+            set({ currentSong: song, isPlaying: true });
+            if (newQueue) set({ queue: newQueue });
+            updateMediaSession(song);
+          });
+        }
+      });
     },
 
     togglePlay: () => {
@@ -192,5 +217,7 @@ export const useAudioStore = create<AudioState>((set, get) => {
 
     setSearchQuery: (searchQuery) => set({ searchQuery }),
     setMood: (mood) => set({ mood }),
+    setSearchResults: (searchResults) => set({ searchResults }),
+    setIsSearching: (isSearching) => set({ isSearching }),
   };
 });

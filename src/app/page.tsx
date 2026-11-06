@@ -1,31 +1,95 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import MoodSelector from '@/components/MoodSelector';
 import Player from '@/components/Player';
-import { VIETNAMESE_SONGS, Song } from '@/lib/musicData';
 import { useAudioStore } from '@/lib/audioEngine';
-import { Play, User, Music, Search, Heart, PlusCircle, Trash2, DownloadCloud } from 'lucide-react';
+import { searchYouTubeMusic, YTSong } from '@/lib/youtubeApi';
+import { Play, User, Music, Search, Heart, PlusCircle, Trash2, Loader2, Sparkles } from 'lucide-react';
 import Link from 'next/link';
+
+// Danh sách bài hát gợi ý mặc định ban đầu
+const INITIAL_VIETNAMESE_SONGS: YTSong[] = [
+  {
+    id: 'TuAnHung-Phale',
+    title: 'Phá Lệ (Lofi Chill)',
+    artist: 'Tuấn Hưng',
+    albumCover: 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=600&q=80',
+    streamUrl: 'https://cdn.pixabay.com/download/audio/2022/05/27/audio_1808fbf07a.mp3',
+    duration: 210,
+    mood: 'chill',
+    genre: 'V-Pop'
+  },
+  {
+    id: 'SonTung-ChayNgayDi',
+    title: 'Chạy Ngay Đi',
+    artist: 'Sơn Tùng M-TP',
+    albumCover: 'https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=600&q=80',
+    streamUrl: 'https://cdn.pixabay.com/download/audio/2022/10/14/audio_9939f792ce.mp3',
+    duration: 185,
+    mood: 'energy',
+    genre: 'Rap Việt'
+  },
+  {
+    id: 'Vu-CaPhe',
+    title: 'Bước Qua Mùa Cô Đơn',
+    artist: 'Vũ.',
+    albumCover: 'https://images.unsplash.com/photo-1501386761578-eac5c94b800a?w=600&q=80',
+    streamUrl: 'https://cdn.pixabay.com/download/audio/2022/03/15/audio_c8c8a73467.mp3',
+    duration: 215,
+    mood: 'coffee',
+    genre: 'Indie Việt'
+  }
+];
 
 export default function HomePage() {
   const { 
     playSong, currentSong, isPlaying, 
     searchQuery, setSearchQuery, mood, 
-    favorites, playlists, createPlaylist, removePlaylist, addSongToPlaylist 
+    searchResults, setSearchResults, isSearching, setIsSearching,
+    favorites, playlists, createPlaylist, removePlaylist
   } = useAudioStore();
 
   const [activeTab, setActiveTab] = useState<'home' | 'favorites' | 'playlists'>('home');
   const [newPlName, setNewPlName] = useState('');
 
-  // Lọc danh sách bài hát theo Tìm kiếm + Mood
-  const filteredSongs = VIETNAMESE_SONGS.filter(song => {
-    const matchSearch = song.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                        song.artist.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                        song.genre.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchMood = mood === 'all' || song.mood === mood;
-    return matchSearch && matchMood;
-  });
+  // Tự động Tìm kiếm trực tiếp trên YouTube Music khi gõ từ khóa
+  useEffect(() => {
+    if (!searchQuery.trim()) {
+      setSearchResults(INITIAL_VIETNAMESE_SONGS);
+      return;
+    }
+
+    const timer = setTimeout(async () => {
+      setIsSearching(true);
+      const results = await searchYouTubeMusic(searchQuery);
+      setSearchResults(results.length > 0 ? results : INITIAL_VIETNAMESE_SONGS);
+      setIsSearching(false);
+    }, 500);
+
+    return () => clearTimeout(timer);
+  }, [searchQuery, setSearchResults, setIsSearching]);
+
+  // Tìm kiếm theo Mood
+  const handleMoodSelect = async (selectedMood: string) => {
+    if (selectedMood === 'all') {
+      setSearchResults(INITIAL_VIETNAMESE_SONGS);
+      return;
+    }
+    const moodKeywords: Record<string, string> = {
+      chill: 'nhac lofi viet nam chill',
+      coffee: 'nhac vu indie viet nam',
+      energy: 'nhac son tung m-tp remix',
+      sad: 'nhac tam trang mua viet nam',
+      night: 'nhac rb viet nam ve dem',
+    };
+
+    const keyword = moodKeywords[selectedMood] || 'nhac viet nam hot';
+    setIsSearching(true);
+    const results = await searchYouTubeMusic(keyword);
+    setSearchResults(results);
+    setIsSearching(false);
+  };
 
   const handleCreatePL = (e: React.FormEvent) => {
     e.preventDefault();
@@ -34,9 +98,11 @@ export default function HomePage() {
     setNewPlName('');
   };
 
+  const displaySongs = searchResults.length > 0 ? searchResults : INITIAL_VIETNAMESE_SONGS;
+
   return (
     <main className="min-h-screen max-w-7xl mx-auto px-4 py-6 pb-36">
-      {/* Header & Navigation */}
+      {/* Header */}
       <header className="flex flex-col md:flex-row justify-between items-center gap-4 mb-8">
         <div className="flex items-center space-x-3">
           <div className="w-12 h-12 bg-[#1DB954] rounded-full flex items-center justify-center shadow-lg shadow-green-500/30">
@@ -44,20 +110,23 @@ export default function HomePage() {
           </div>
           <div>
             <h1 className="text-2xl font-black tracking-tight">Moodify Việt Nam</h1>
-            <p className="text-xs text-gray-400">Nghe nhạc Việt không quảng cáo • Tối ưu 5G</p>
+            <p className="text-xs text-gray-400">Tìm kiếm & Nghe nhạc YouTube Music không quảng cáo</p>
           </div>
         </div>
 
-        {/* Search Bar */}
+        {/* Ô Tìm Kiếm YouTube Music */}
         <div className="relative w-full md:w-96">
           <Search className="absolute left-3.5 top-3 text-gray-400" size={18} />
           <input 
             type="text"
-            placeholder="Tìm bài hát, ca sĩ (Sơn Tùng, Đen Vâu, Vũ...)"
+            placeholder="Gõ bài hát, ca sĩ (Tuấn Hưng, Sơn Tùng, Đen...)"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full bg-[#242424] border border-white/10 rounded-full pl-10 pr-4 py-2.5 text-sm text-white focus:outline-none focus:border-[#1DB954] transition"
+            className="w-full bg-[#242424] border border-white/10 rounded-full pl-10 pr-10 py-2.5 text-sm text-white focus:outline-none focus:border-[#1DB954] transition"
           />
+          {isSearching && (
+            <Loader2 className="absolute right-3.5 top-3 text-[#1DB954] animate-spin" size={18} />
+          )}
         </div>
 
         <Link 
@@ -69,13 +138,13 @@ export default function HomePage() {
         </Link>
       </header>
 
-      {/* Tabs Menu */}
+      {/* Tabs */}
       <div className="flex space-x-3 mb-6 border-b border-white/10 pb-3">
         <button 
           onClick={() => setActiveTab('home')}
           className={`px-4 py-2 rounded-full text-sm font-bold transition ${activeTab === 'home' ? 'bg-[#1DB954] text-black' : 'text-gray-400 hover:text-white'}`}
         >
-          Trang Chủ & Mood
+          Trang Chủ & Tìm Kiếm
         </button>
         <button 
           onClick={() => setActiveTab('favorites')}
@@ -87,11 +156,10 @@ export default function HomePage() {
           onClick={() => setActiveTab('playlists')}
           className={`px-4 py-2 rounded-full text-sm font-bold transition ${activeTab === 'playlists' ? 'bg-[#1DB954] text-black' : 'text-gray-400 hover:text-white'}`}
         >
-          Playlist Của Tôi ({playlists.length})
+          Playlist ({playlists.length})
         </button>
       </div>
 
-      {/* Content based on Active Tab */}
       {activeTab === 'home' && (
         <>
           <MoodSelector />
@@ -99,42 +167,49 @@ export default function HomePage() {
           {/* Song Grid */}
           <section className="mt-8">
             <h2 className="text-xl font-bold mb-4 flex items-center justify-between">
-              <span>Bảng Xếp Hạng Nhạc Việt HOT</span>
-              <span className="text-xs text-gray-400 font-normal">{filteredSongs.length} bài hát</span>
+              <span>{searchQuery ? `Kết quả tìm kiếm cho "${searchQuery}"` : 'Bài Hát Gợi Ý Hàng Đầu'}</span>
+              <span className="text-xs text-gray-400 font-normal">{displaySongs.length} bài hát</span>
             </h2>
 
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
-              {filteredSongs.map((song) => {
-                const isCurrent = currentSong?.id === song.id;
-                return (
-                  <div 
-                    key={song.id}
-                    onClick={() => playSong(song, filteredSongs)}
-                    className="bg-[#181818] p-3 rounded-2xl hover:bg-[#282828] transition group cursor-pointer relative flex flex-col justify-between"
-                  >
-                    <div className="relative mb-3">
-                      <img 
-                        src={song.albumCover} 
-                        alt={song.title} 
-                        className="w-full aspect-square object-cover rounded-xl shadow-md"
-                      />
-                      <button className={`absolute right-2 bottom-2 w-10 h-10 rounded-full bg-[#1DB954] text-black flex items-center justify-center shadow-xl opacity-0 group-hover:opacity-100 transition ${
-                        isCurrent && isPlaying ? 'opacity-100' : ''
-                      }`}>
-                        <Play size={20} fill="black" className="ml-0.5" />
-                      </button>
+            {isSearching ? (
+              <div className="flex items-center justify-center py-20 text-gray-400 space-x-2">
+                <Loader2 className="animate-spin text-[#1DB954]" size={24} />
+                <span>Đang tìm nhạc trên kho dữ liệu YouTube Music...</span>
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+                {displaySongs.map((song) => {
+                  const isCurrent = currentSong?.id === song.id;
+                  return (
+                    <div 
+                      key={song.id}
+                      onClick={() => playSong(song, displaySongs)}
+                      className="bg-[#181818] p-3 rounded-2xl hover:bg-[#282828] transition group cursor-pointer relative flex flex-col justify-between"
+                    >
+                      <div className="relative mb-3">
+                        <img 
+                          src={song.albumCover} 
+                          alt={song.title} 
+                          className="w-full aspect-square object-cover rounded-xl shadow-md"
+                          onError={(e) => {
+                            (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=500&q=80';
+                          }}
+                        />
+                        <button className={`absolute right-2 bottom-2 w-10 h-10 rounded-full bg-[#1DB954] text-black flex items-center justify-center shadow-xl opacity-0 group-hover:opacity-100 transition ${
+                          isCurrent && isPlaying ? 'opacity-100' : ''
+                        }`}>
+                          <Play size={20} fill="black" className="ml-0.5" />
+                        </button>
+                      </div>
+                      <div>
+                        <h3 className="font-bold text-sm truncate text-white">{song.title}</h3>
+                        <p className="text-xs text-gray-400 mt-0.5 truncate">{song.artist}</p>
+                      </div>
                     </div>
-                    <div>
-                      <h3 className="font-bold text-sm truncate text-white">{song.title}</h3>
-                      <p className="text-xs text-gray-400 mt-0.5 truncate">{song.artist}</p>
-                      <span className="inline-block mt-2 text-[10px] bg-white/5 border border-white/10 px-2 py-0.5 rounded text-green-400">
-                        {song.genre}
-                      </span>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
+                  );
+                })}
+              </div>
+            )}
           </section>
         </>
       )}
@@ -143,11 +218,10 @@ export default function HomePage() {
         <section className="mt-4">
           <h2 className="text-xl font-bold mb-4 flex items-center space-x-2">
             <Heart className="text-red-500 fill-red-500" size={22} />
-            <span>Danh Sách Nhạc Việt Yêu Thích</span>
+            <span>Nhạc Việt Yêu Thích</span>
           </h2>
-
           {favorites.length === 0 ? (
-            <p className="text-gray-400 text-sm">Chưa có bài hát nào được thả tim. Hãy bấm icon ❤️ trên trình phát để lưu bài nhé!</p>
+            <p className="text-gray-400 text-sm">Chưa có bài hát nào được lưu.</p>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
               {favorites.map((song) => (
