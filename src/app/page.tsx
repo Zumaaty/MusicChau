@@ -5,254 +5,219 @@ import MoodSelector from '@/components/MoodSelector';
 import Player from '@/components/Player';
 import { useAudioStore } from '@/lib/audioEngine';
 import { searchYouTubeMusic, YTSong } from '@/lib/youtubeApi';
-import { Play, User, Music, Search, Heart, PlusCircle, Trash2, Loader2 } from 'lucide-react';
+import { 
+  Home, Search, Library, Heart, Plus, Play, User, Music, 
+  Loader2, ChevronLeft, ChevronRight, Compass, Sparkles, Disc 
+} from 'lucide-react';
 import Link from 'next/link';
 
-const INITIAL_VIETNAMESE_SONGS: YTSong[] = [
-  {
-    id: 'TuAnHung-Phale',
-    title: 'Phá Lệ (Lofi Chill)',
-    artist: 'Tuấn Hưng',
-    albumCover: 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=600&q=80',
-    streamUrl: 'https://cdn.pixabay.com/download/audio/2022/05/27/audio_1808fbf07a.mp3',
-    duration: 210,
-    mood: 'chill',
-    genre: 'V-Pop'
-  },
-  {
-    id: 'SonTung-ChayNgayDi',
-    title: 'Chạy Ngay Đi',
-    artist: 'Sơn Tùng M-TP',
-    albumCover: 'https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=600&q=80',
-    streamUrl: 'https://cdn.pixabay.com/download/audio/2022/10/14/audio_9939f792ce.mp3',
-    duration: 185,
-    mood: 'energy',
-    genre: 'Rap Việt'
-  },
-  {
-    id: 'Vu-CaPhe',
-    title: 'Bước Qua Mùa Cô Đơn',
-    artist: 'Vũ.',
-    albumCover: 'https://images.unsplash.com/photo-1501386761578-eac5c94b800a?w=600&q=80',
-    streamUrl: 'https://cdn.pixabay.com/download/audio/2022/03/15/audio_c8c8a73467.mp3',
-    duration: 215,
-    mood: 'coffee',
-    genre: 'Indie Việt'
-  }
-];
-
-export default function HomePage() {
+export default function SpotifyApp() {
   const { 
     playSong, currentSong, isPlaying, 
     searchQuery, setSearchQuery, 
     searchResults, setSearchResults, isSearching, setIsSearching,
-    favorites, playlists, createPlaylist, removePlaylist
+    favorites, playlists, createPlaylist
   } = useAudioStore();
 
-  const [activeTab, setActiveTab] = useState<'home' | 'favorites' | 'playlists'>('home');
-  const [newPlName, setNewPlName] = useState('');
+  const [activeNav, setActiveNav] = useState<'home' | 'search' | 'library' | 'favorites'>('home');
+  const [topHits, setTopHits] = useState<YTSong[]>([]);
 
+  // Tải Nhạc Việt HOT mặc định ngay khi vào ứng dụng (<100ms)
+  useEffect(() => {
+    async function loadDefaultMusic() {
+      const results = await searchYouTubeMusic('nhac viet nam hot bang xep hang');
+      setTopHits(results);
+      setSearchResults(results);
+    }
+    loadDefaultMusic();
+  }, [setSearchResults]);
+
+  // Tìm kiếm tức thì theo thời gian thực (Zero latency)
   useEffect(() => {
     if (!searchQuery.trim()) {
-      setSearchResults(INITIAL_VIETNAMESE_SONGS);
+      if (topHits.length > 0) setSearchResults(topHits);
       return;
     }
 
     const timer = setTimeout(async () => {
       setIsSearching(true);
       const results = await searchYouTubeMusic(searchQuery);
-      setSearchResults(results.length > 0 ? results : INITIAL_VIETNAMESE_SONGS);
+      setSearchResults(results);
       setIsSearching(false);
-    }, 500);
+    }, 250); // Phản hồi cực nhạy 250ms
 
     return () => clearTimeout(timer);
-  }, [searchQuery, setSearchResults, setIsSearching]);
-
-  const handleCreatePL = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newPlName.trim()) return;
-    createPlaylist(newPlName.trim());
-    setNewPlName('');
-  };
-
-  const displaySongs = searchResults.length > 0 ? searchResults : INITIAL_VIETNAMESE_SONGS;
+  }, [searchQuery, topHits, setSearchResults, setIsSearching]);
 
   return (
-    <main className="min-h-screen max-w-7xl mx-auto px-4 py-6 pb-36">
-      <header className="flex flex-col md:flex-row justify-between items-center gap-4 mb-8">
-        <div className="flex items-center space-x-3">
-          <div className="w-12 h-12 bg-[#1DB954] rounded-full flex items-center justify-center shadow-lg shadow-green-500/30">
-            <Music className="text-black" size={26} />
+    <div className="flex h-screen bg-black text-white font-sans overflow-hidden select-none">
+      
+      {/* 🟢 SIDEBAR BÊN TRÁI CHUẨN SPOTIFY */}
+      <aside className="w-64 bg-black p-4 flex flex-col space-y-6 hidden md:flex border-r border-[#181818]">
+        {/* Logo Spotify */}
+        <div className="flex items-center space-x-2 px-2">
+          <div className="w-8 h-8 bg-[#1DB954] rounded-full flex items-center justify-center">
+            <Music size={20} className="text-black" />
           </div>
-          <div>
-            <h1 className="text-2xl font-black tracking-tight">Moodify Việt Nam</h1>
-            <p className="text-xs text-gray-400">Nghe nhạc YouTube Music không quảng cáo • Tối ưu 5G</p>
-          </div>
+          <span className="font-extrabold text-xl tracking-tight text-white">Spotify</span>
         </div>
 
-        <div className="relative w-full md:w-96">
-          <Search className="absolute left-3.5 top-3 text-gray-400" size={18} />
-          <input 
-            type="text"
-            placeholder="Gõ bài hát, ca sĩ (Tuấn Hưng, Sơn Tùng, Đen...)"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full bg-[#242424] border border-white/10 rounded-full pl-10 pr-10 py-2.5 text-sm text-white focus:outline-none focus:border-[#1DB954] transition"
-          />
-          {isSearching && (
-            <Loader2 className="absolute right-3.5 top-3 text-[#1DB954] animate-spin" size={18} />
-          )}
+        {/* Main Nav */}
+        <nav className="space-y-3 font-bold text-sm text-gray-400">
+          <button 
+            onClick={() => { setActiveNav('home'); setSearchQuery(''); }}
+            className={`flex items-center space-x-4 w-full px-2 py-1.5 rounded-lg transition ${activeNav === 'home' ? 'text-white' : 'hover:text-white'}`}
+          >
+            <Home size={22} />
+            <span>Trang chủ</span>
+          </button>
+
+          <button 
+            onClick={() => setActiveNav('search')}
+            className={`flex items-center space-x-4 w-full px-2 py-1.5 rounded-lg transition ${activeNav === 'search' ? 'text-white' : 'hover:text-white'}`}
+          >
+            <Search size={22} />
+            <span>Tìm kiếm</span>
+          </button>
+
+          <button 
+            onClick={() => setActiveNav('library')}
+            className={`flex items-center space-x-4 w-full px-2 py-1.5 rounded-lg transition ${activeNav === 'library' ? 'text-white' : 'hover:text-white'}`}
+          >
+            <Library size={22} />
+            <span>Thư viện</span>
+          </button>
+        </nav>
+
+        {/* Playlists & Liked Section */}
+        <div className="pt-4 border-t border-[#282828] flex-1 overflow-y-auto space-y-3">
+          <button 
+            onClick={() => setActiveNav('favorites')}
+            className="flex items-center space-x-3 text-sm font-bold text-gray-400 hover:text-white w-full px-2"
+          >
+            <div className="w-6 h-6 bg-gradient-to-br from-indigo-600 to-purple-800 rounded flex items-center justify-center">
+              <Heart size={14} className="text-white fill-white" />
+            </div>
+            <span className="truncate">Bài hát đã thích</span>
+          </button>
+
+          <div className="px-2 pt-2 text-xs font-bold text-gray-500 uppercase tracking-wider">
+            PLAYLIST CỦA BẠN
+          </div>
+          {playlists.map((pl) => (
+            <div key={pl.id} className="px-2 text-sm text-gray-400 hover:text-white cursor-pointer truncate">
+              {pl.name}
+            </div>
+          ))}
         </div>
+      </aside>
 
-        <Link 
-          href="/login"
-          className="flex items-center space-x-2 bg-white/10 hover:bg-white/20 px-4 py-2 rounded-full border border-white/10 text-sm font-semibold transition"
-        >
-          <User size={16} />
-          <span>Tài khoản</span>
-        </Link>
-      </header>
+      {/* 🔴 NỘI DUNG CHÍNH (MAIN VIEW SPOTIFY) */}
+      <main className="flex-1 bg-gradient-to-b from-[#1e1e1e] to-[#121212] overflow-y-auto pb-32 relative">
+        
+        {/* Sticky Header */}
+        <header className="sticky top-0 bg-[#121212]/80 backdrop-blur-md px-6 py-4 flex justify-between items-center z-40">
+          <div className="flex items-center space-x-4">
+            <div className="flex space-x-2">
+              <button className="w-8 h-8 rounded-full bg-black/60 flex items-center justify-center text-gray-400 hover:text-white">
+                <ChevronLeft size={20} />
+              </button>
+              <button className="w-8 h-8 rounded-full bg-black/60 flex items-center justify-center text-gray-400 hover:text-white">
+                <ChevronRight size={20} />
+              </button>
+            </div>
 
-      <div className="flex space-x-3 mb-6 border-b border-white/10 pb-3">
-        <button 
-          onClick={() => setActiveTab('home')}
-          className={`px-4 py-2 rounded-full text-sm font-bold transition ${activeTab === 'home' ? 'bg-[#1DB954] text-black' : 'text-gray-400 hover:text-white'}`}
-        >
-          Trang Chủ & Tìm Kiếm
-        </button>
-        <button 
-          onClick={() => setActiveTab('favorites')}
-          className={`px-4 py-2 rounded-full text-sm font-bold transition ${activeTab === 'favorites' ? 'bg-[#1DB954] text-black' : 'text-gray-400 hover:text-white'}`}
-        >
-          Nhạc Yêu Thích ({favorites.length})
-        </button>
-        <button 
-          onClick={() => setActiveTab('playlists')}
-          className={`px-4 py-2 rounded-full text-sm font-bold transition ${activeTab === 'playlists' ? 'bg-[#1DB954] text-black' : 'text-gray-400 hover:text-white'}`}
-        >
-          Playlist ({playlists.length})
-        </button>
-      </div>
+            {/* Ô Tìm Kiếm Siêu Tốc */}
+            <div className="relative w-64 sm:w-96">
+              <Search className="absolute left-3 top-2.5 text-gray-400" size={18} />
+              <input 
+                type="text"
+                placeholder="Bạn muốn nghe gì? (Tuấn Hưng, Sơn Tùng, Đen...)"
+                value={searchQuery}
+                onChange={(e) => { setSearchQuery(e.target.value); setActiveNav('search'); }}
+                className="w-full bg-[#242424] border-0 rounded-full pl-10 pr-8 py-2 text-sm text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-white transition"
+              />
+              {isSearching && (
+                <Loader2 className="absolute right-3 top-2.5 text-[#1DB954] animate-spin" size={16} />
+              )}
+            </div>
+          </div>
 
-      {activeTab === 'home' && (
-        <>
+          <Link 
+            href="/login"
+            className="flex items-center space-x-2 bg-black hover:scale-105 transition px-3 py-1.5 rounded-full border border-white/10 text-xs font-bold"
+          >
+            <User size={14} />
+            <span>Tài khoản</span>
+          </Link>
+        </header>
+
+        <div className="px-6 py-4">
           <MoodSelector />
 
-          <section className="mt-8">
-            <h2 className="text-xl font-bold mb-4 flex items-center justify-between">
-              <span>{searchQuery ? `Kết quả tìm kiếm cho "${searchQuery}"` : 'Bài Hát Gợi Ý Hàng Đầu'}</span>
-              <span className="text-xs text-gray-400 font-normal">{displaySongs.length} bài hát</span>
-            </h2>
-
-            {isSearching ? (
-              <div className="flex items-center justify-center py-20 text-gray-400 space-x-2">
-                <Loader2 className="animate-spin text-[#1DB954]" size={24} />
-                <span>Đang tìm kiếm nhạc YouTube...</span>
+          {/* Quick Access Greeting Section */}
+          {!searchQuery && activeNav === 'home' && (
+            <section className="my-6">
+              <h2 className="text-2xl font-black mb-4">Chào buổi tối</h2>
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                {topHits.slice(0, 6).map((song) => (
+                  <div 
+                    key={song.id} 
+                    onClick={() => playSong(song, topHits)}
+                    className="bg-white/5 hover:bg-white/20 transition rounded-md flex items-center overflow-hidden cursor-pointer group"
+                  >
+                    <img src={song.albumCover} alt={song.title} className="w-16 h-16 object-cover shadow-md" />
+                    <span className="font-bold text-sm px-4 truncate flex-1">{song.title}</span>
+                    <button className="w-10 h-10 rounded-full bg-[#1DB954] text-black flex items-center justify-center mr-3 opacity-0 group-hover:opacity-100 transition shadow-xl">
+                      <Play size={18} fill="black" className="ml-0.5" />
+                    </button>
+                  </div>
+                ))}
               </div>
-            ) : (
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-                {displaySongs.map((song) => {
-                  const isCurrent = currentSong?.id === song.id;
-                  return (
-                    <div 
-                      key={song.id}
-                      onClick={() => playSong(song, displaySongs)}
-                      className="bg-[#181818] p-3 rounded-2xl hover:bg-[#282828] transition group cursor-pointer relative flex flex-col justify-between"
-                    >
-                      <div className="relative mb-3">
-                        <img 
-                          src={song.albumCover} 
-                          alt={song.title} 
-                          className="w-full aspect-square object-cover rounded-xl shadow-md"
-                        />
-                        <button className={`absolute right-2 bottom-2 w-10 h-10 rounded-full bg-[#1DB954] text-black flex items-center justify-center shadow-xl opacity-0 group-hover:opacity-100 transition ${
-                          isCurrent && isPlaying ? 'opacity-100' : ''
-                        }`}>
-                          <Play size={20} fill="black" className="ml-0.5" />
-                        </button>
-                      </div>
-                      <div>
-                        <h3 className="font-bold text-sm truncate text-white">{song.title}</h3>
-                        <p className="text-xs text-gray-400 mt-0.5 truncate">{song.artist}</p>
-                      </div>
+            </section>
+          )}
+
+          {/* Song Grid (Bảng Xếp Hạng & Kết Quả Tìm Kiếm) */}
+          <section className="my-8">
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-xl font-bold tracking-tight">
+                {searchQuery ? `Kết quả tìm kiếm cho "${searchQuery}"` : 'Top Nhạc Việt Nổi Bật'}
+              </h2>
+              <span className="text-xs text-gray-400 font-bold">{searchResults.length} bài hát</span>
+            </div>
+
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-5">
+              {searchResults.map((song) => {
+                const isCurrent = currentSong?.id === song.id;
+                return (
+                  <div 
+                    key={song.id}
+                    onClick={() => playSong(song, searchResults)}
+                    className="bg-[#181818] hover:bg-[#282828] p-4 rounded-lg transition duration-200 group cursor-pointer relative"
+                  >
+                    <div className="relative mb-4">
+                      <img 
+                        src={song.albumCover} 
+                        alt={song.title} 
+                        className="w-full aspect-square object-cover rounded-md shadow-lg"
+                      />
+                      <button className={`absolute right-2 bottom-2 w-12 h-12 rounded-full bg-[#1DB954] text-black flex items-center justify-center shadow-2xl opacity-0 group-hover:opacity-100 group-hover:translate-y-0 translate-y-2 transition-all ${
+                        isCurrent && isPlaying ? 'opacity-100 translate-y-0' : ''
+                      }`}>
+                        <Play size={22} fill="black" className="ml-0.5" />
+                      </button>
                     </div>
-                  );
-                })}
-              </div>
-            )}
-          </section>
-        </>
-      )}
-
-      {activeTab === 'favorites' && (
-        <section className="mt-4">
-          <h2 className="text-xl font-bold mb-4 flex items-center space-x-2">
-            <Heart className="text-red-500 fill-red-500" size={22} />
-            <span>Nhạc Yêu Thích</span>
-          </h2>
-          {favorites.length === 0 ? (
-            <p className="text-gray-400 text-sm">Chưa có bài hát nào được thả tim.</p>
-          ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
-              {favorites.map((song) => (
-                <div key={song.id} onClick={() => playSong(song, favorites)} className="bg-[#181818] p-3 rounded-xl flex items-center space-x-3 cursor-pointer hover:bg-[#282828]">
-                  <img src={song.albumCover} alt={song.title} className="w-14 h-14 rounded-lg object-cover" />
-                  <div className="flex-1 truncate">
-                    <h4 className="font-bold text-sm text-white truncate">{song.title}</h4>
+                    <h3 className="font-bold text-sm truncate text-white mb-1">{song.title}</h3>
                     <p className="text-xs text-gray-400 truncate">{song.artist}</p>
                   </div>
-                  <Play size={20} className="text-[#1DB954]" />
-                </div>
-              ))}
+                );
+              })}
             </div>
-          )}
-        </section>
-      )}
+          </section>
+        </div>
 
-      {activeTab === 'playlists' && (
-        <section className="mt-4">
-          <form onSubmit={handleCreatePL} className="flex space-x-2 mb-6 max-w-md">
-            <input 
-              type="text" 
-              placeholder="Tên Playlist mới..."
-              value={newPlName}
-              onChange={(e) => setNewPlName(e.target.value)}
-              className="flex-1 bg-[#242424] border border-white/10 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#1DB954]"
-            />
-            <button type="submit" className="bg-[#1DB954] text-black font-bold px-4 py-2 rounded-lg text-sm flex items-center space-x-1">
-              <PlusCircle size={16} />
-              <span>Tạo</span>
-            </button>
-          </form>
-
-          <div className="space-y-4">
-            {playlists.map((pl) => (
-              <div key={pl.id} className="bg-[#181818] p-4 rounded-xl border border-white/5">
-                <div className="flex justify-between items-center mb-3">
-                  <h3 className="font-bold text-lg text-white">{pl.name} ({pl.songs.length} bài)</h3>
-                  <button onClick={() => removePlaylist(pl.id)} className="text-gray-400 hover:text-red-400">
-                    <Trash2 size={18} />
-                  </button>
-                </div>
-                {pl.songs.length === 0 ? (
-                  <p className="text-xs text-gray-500">Playlist đang trống.</p>
-                ) : (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                    {pl.songs.map((song) => (
-                      <div key={song.id} onClick={() => playSong(song, pl.songs)} className="p-2 bg-white/5 rounded-lg flex justify-between items-center cursor-pointer hover:bg-white/10">
-                        <span className="text-xs font-semibold truncate">{song.title} - {song.artist}</span>
-                        <Play size={14} className="text-[#1DB954]" />
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
-        </section>
-      )}
-
-      <Player />
-    </main>
+        <Player />
+      </main>
+    </div>
   );
 }

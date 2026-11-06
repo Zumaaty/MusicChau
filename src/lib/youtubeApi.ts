@@ -10,49 +10,36 @@ export interface YTSong {
   lyrics?: { time: number; text: string }[];
 }
 
-const API_ENDPOINTS = [
-  'https://inv.tux.rainside.sk/api/v1',
-  'https://invidious.nerdvpn.de/api/v1',
-  'https://vid.puffyan.us/api/v1',
-];
-
 export async function searchYouTubeMusic(query: string): Promise<YTSong[]> {
   if (!query.trim()) return [];
 
-  for (const endpoint of API_ENDPOINTS) {
-    try {
-      const res = await fetch(`${endpoint}/search?q=${encodeURIComponent(query)}&type=video`, {
-        headers: { 'Accept': 'application/json' }
-      });
-      
-      if (!res.ok) continue;
+  try {
+    const url = `https://itunes.apple.com/search?term=${encodeURIComponent(query)}&entity=song&country=VN&limit=25`;
+    const res = await fetch(url);
+    if (!res.ok) return [];
 
-      const data = await res.json();
+    const data = await res.json();
+    return data.results.map((item: any) => {
+      // Đổi ảnh bìa thành kích thước HD 600x600
+      const hdCover = item.artworkUrl100 ? item.artworkUrl100.replace('100x100bb', '600x600bb') : 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=600&q=80';
       
-      return data.slice(0, 15).map((item: any) => {
-        const thumbnails = item.videoThumbnails || [];
-        const highThumb = thumbnails.find((t: any) => t.quality === 'high') || thumbnails[0];
-        const albumCover = highThumb ? highThumb.url : `https://i.ytimg.com/vi/${item.videoId}/hqdefault.jpg`;
-
-        return {
-          id: item.videoId,
-          title: item.title || 'Bài hát Việt Nam',
-          artist: item.author || 'Nhiều ca sĩ',
-          albumCover: albumCover,
-          streamUrl: `https://pipedproxy.kavin.rocks/videoplayback?id=${item.videoId}&itag=140`,
-          duration: item.lengthSeconds || 180,
-          mood: 'all',
-          genre: 'V-Pop'
-        };
-      });
-    } catch (err) {
-      console.warn(`Endpoint ${endpoint} failed, trying next...`);
-    }
+      return {
+        id: item.trackId.toString(),
+        title: item.trackName,
+        artist: item.artistName,
+        albumCover: hdCover,
+        streamUrl: item.previewUrl, // Direct high-speed CDN audio stream
+        duration: Math.floor((item.trackTimeMillis || 180000) / 1000),
+        mood: 'all',
+        genre: item.primaryGenreName || 'V-Pop'
+      };
+    });
+  } catch (err) {
+    console.error('iTunes Search API Error:', err);
+    return [];
   }
-
-  return [];
 }
 
 export function getFallbackStreamUrl(videoId: string): string {
-  return `https://yewtu.be/latest_version?id=${videoId}&itag=140`;
+  return '';
 }

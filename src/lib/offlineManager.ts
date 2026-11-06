@@ -1,4 +1,4 @@
-const CACHE_NAME = 'moodify-offline-songs-v1';
+const CACHE_NAME = 'spotify-offline-v1';
 
 export async function saveSongOffline(songUrl: string): Promise<boolean> {
   if (typeof window === 'undefined' || !('caches' in window)) return false;
@@ -7,7 +7,6 @@ export async function saveSongOffline(songUrl: string): Promise<boolean> {
     await cache.add(songUrl);
     return true;
   } catch (err) {
-    console.error('Lỗi khi tải nhạc offline:', err);
     return false;
   }
 }

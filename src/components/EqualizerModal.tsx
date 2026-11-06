@@ -45,7 +45,7 @@ export default function EqualizerModal({ isOpen, onClose }: EqualizerModalProps)
         <div className="flex justify-between items-center mb-6">
           <div className="flex items-center space-x-2">
             <Sliders className="text-[#1DB954]" size={22} />
-            <h3 className="text-lg font-bold">Bộ Chỉnh Âm (Equalizer)</h3>
+            <h3 className="text-lg font-bold">Spotify Equalizer</h3>
           </div>
           <button onClick={onClose} className="p-1 rounded-full text-gray-400 hover:text-white">
             <X size={20} />

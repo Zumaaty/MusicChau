@@ -27,9 +27,7 @@ class EqualizerEngine {
       });
       current.connect(this.ctx.destination);
       this.isInit = true;
-    } catch (e) {
-      console.warn('Equalizer AudioContext skipped:', e);
-    }
+    } catch (e) {}
   }
 
   public setGain(bandIndex: number, gainValue: number) {

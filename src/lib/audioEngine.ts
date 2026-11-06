@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { YTSong, getFallbackStreamUrl } from './youtubeApi';
+import { YTSong } from './youtubeApi';
 import { eqEngine } from './equalizerEngine';
 
 export interface Playlist {
@@ -50,7 +50,7 @@ export const useAudioStore = create<AudioState>((set, get) => {
 
   if (typeof window !== 'undefined') {
     audio = new Audio();
-    audio.preload = 'metadata';
+    audio.preload = 'auto';
     audio.ontimeupdate = () => set({ currentTime: audio?.currentTime || 0 });
     audio.onloadedmetadata = () => set({ duration: audio?.duration || 0 });
     audio.onended = () => {
@@ -60,14 +60,6 @@ export const useAudioStore = create<AudioState>((set, get) => {
         get().nextSong();
       }
     };
-
-    audio.onerror = () => {
-      const current = get().currentSong;
-      if (current && audio) {
-        audio.src = getFallbackStreamUrl(current.id);
-        audio.play().catch(e => console.error("Fallback audio playback error:", e));
-      }
-    };
   }
 
   const updateMediaSession = (song: YTSong) => {
@@ -75,7 +67,7 @@ export const useAudioStore = create<AudioState>((set, get) => {
       navigator.mediaSession.metadata = new MediaMetadata({
         title: song.title,
         artist: song.artist,
-        album: 'Moodify Music',
+        album: 'Spotify Moodify',
         artwork: [{ src: song.albumCover, sizes: '512x512', type: 'image/jpeg' }],
       });
       navigator.mediaSession.setActionHandler('play', () => get().togglePlay());
@@ -116,16 +108,7 @@ export const useAudioStore = create<AudioState>((set, get) => {
         set({ currentSong: song, isPlaying: true });
         if (newQueue) set({ queue: newQueue });
         updateMediaSession(song);
-      }).catch(() => {
-        if (audio) {
-          audio.src = getFallbackStreamUrl(song.id);
-          audio.play().then(() => {
-            set({ currentSong: song, isPlaying: true });
-            if (newQueue) set({ queue: newQueue });
-            updateMediaSession(song);
-          });
-        }
-      });
+      }).catch(err => console.error("Playback error:", err));
     },
 
     togglePlay: () => {

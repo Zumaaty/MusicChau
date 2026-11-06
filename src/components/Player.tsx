@@ -57,75 +57,78 @@ export default function Player() {
       <LyricsModal isOpen={showLyrics} onClose={() => setShowLyrics(false)} />
       <EqualizerModal isOpen={showEQ} onClose={() => setShowEQ(false)} />
 
-      <div className={`fixed bottom-0 left-0 right-0 bg-black/95 backdrop-blur-xl border-t border-white/10 px-4 py-3 z-50 transition-all ${
-        isExpanded ? 'h-full flex flex-col justify-between py-8 px-6' : ''
+      {/* Spotify Bottom Bar */}
+      <div className={`fixed bottom-0 left-0 right-0 bg-black border-t border-[#282828] px-4 py-3 z-50 transition-all ${
+        isExpanded ? 'h-full flex flex-col justify-between py-12 px-8 bg-[#121212]' : ''
       }`}>
-        <div 
-          className="w-full bg-white/20 h-1.5 rounded-full cursor-pointer mb-3 relative overflow-hidden"
-          onClick={(e) => {
-            const rect = e.currentTarget.getBoundingClientRect();
-            seek(((e.clientX - rect.left) / rect.width) * duration);
-          }}
-        >
-          <div className="bg-[#1DB954] h-full rounded-full transition-all duration-100" style={{ width: `${progressPercent}%` }} />
-        </div>
-
-        <div className={`flex items-center justify-between max-w-7xl mx-auto w-full ${isExpanded ? 'flex-col justify-around flex-1' : ''}`}>
+        <div className={`flex items-center justify-between max-w-[1800px] mx-auto w-full ${isExpanded ? 'flex-col justify-around flex-1' : ''}`}>
           
-          <div className={`flex items-center space-x-4 ${isExpanded ? 'flex-col space-x-0 space-y-4 text-center' : 'w-1/3'}`}>
+          {/* Left: Song Info */}
+          <div className={`flex items-center space-x-3 ${isExpanded ? 'flex-col space-x-0 space-y-4 text-center' : 'w-1/4'}`}>
             <img 
               src={currentSong.albumCover} 
               alt={currentSong.title} 
-              className={`rounded-xl object-cover shadow-2xl transition-all ${isExpanded ? 'w-64 h-64 shadow-[0_10px_30px_rgba(29,185,84,0.3)]' : 'w-12 h-12'}`} 
+              className={`rounded-md object-cover shadow-lg transition-all ${isExpanded ? 'w-72 h-72 rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.9)]' : 'w-14 h-14'}`} 
             />
             <div className="truncate">
-              <h4 className={`font-bold text-white truncate ${isExpanded ? 'text-2xl' : 'text-sm'}`}>{currentSong.title}</h4>
-              <p className={`text-gray-400 truncate ${isExpanded ? 'text-base mt-1' : 'text-xs'}`}>{currentSong.artist}</p>
+              <h4 className={`font-bold text-white hover:underline cursor-pointer truncate ${isExpanded ? 'text-3xl' : 'text-sm'}`}>{currentSong.title}</h4>
+              <p className={`text-gray-400 hover:underline cursor-pointer truncate ${isExpanded ? 'text-lg mt-1' : 'text-xs'}`}>{currentSong.artist}</p>
             </div>
             
-            <button onClick={() => toggleFavorite(currentSong)} className="text-gray-400 hover:text-red-500 transition">
-              <Heart size={20} fill={isFav ? '#ef4444' : 'none'} className={isFav ? 'text-red-500' : ''} />
+            <button onClick={() => toggleFavorite(currentSong)} className="text-gray-400 hover:text-white transition ml-2">
+              <Heart size={18} fill={isFav ? '#1DB954' : 'none'} className={isFav ? 'text-[#1DB954]' : ''} />
             </button>
           </div>
 
-          <div className={`flex flex-col items-center justify-center space-y-2 ${isExpanded ? 'w-full my-6' : 'w-1/3'}`}>
-            <div className="flex items-center space-x-6">
+          {/* Center: Playback & Seekbar */}
+          <div className={`flex flex-col items-center justify-center ${isExpanded ? 'w-full max-w-xl my-6' : 'w-2/4 max-w-2xl'}`}>
+            <div className="flex items-center space-x-6 mb-2">
               <button onClick={toggleShuffle} className={`transition ${isShuffle ? 'text-[#1DB954]' : 'text-gray-400 hover:text-white'}`}>
-                <Shuffle size={18} />
+                <Shuffle size={16} />
               </button>
-              <button onClick={prevSong} className="text-gray-300 hover:text-white"><SkipBack size={22} /></button>
-              <button onClick={togglePlay} className="w-12 h-12 rounded-full bg-[#1DB954] text-black flex items-center justify-center hover:scale-105 shadow-lg">
-                {isPlaying ? <Pause size={24} fill="black" /> : <Play size={24} fill="black" className="ml-0.5" />}
+              <button onClick={prevSong} className="text-gray-300 hover:text-white transition"><SkipBack size={20} /></button>
+              <button onClick={togglePlay} className="w-9 h-9 rounded-full bg-white text-black flex items-center justify-center hover:scale-105 transition shadow-md">
+                {isPlaying ? <Pause size={18} fill="black" /> : <Play size={18} fill="black" className="ml-0.5" />}
               </button>
-              <button onClick={nextSong} className="text-gray-300 hover:text-white"><SkipForward size={22} /></button>
+              <button onClick={nextSong} className="text-gray-300 hover:text-white transition"><SkipForward size={20} /></button>
               <button onClick={toggleLoop} className={`transition ${isLoop ? 'text-[#1DB954]' : 'text-gray-400 hover:text-white'}`}>
-                <Repeat size={18} />
+                <Repeat size={16} />
               </button>
             </div>
 
-            {isExpanded && (
-              <span className="text-xs text-gray-400 font-medium">
-                {formatTime(currentTime)} / {formatTime(duration)}
-              </span>
-            )}
+            {/* Seek progress bar */}
+            <div className="flex items-center space-x-2 w-full text-[11px] text-gray-400 font-medium">
+              <span>{formatTime(currentTime)}</span>
+              <div 
+                className="flex-1 bg-[#4d4d4d] hover:bg-[#1DB954] h-1 rounded-full cursor-pointer group relative overflow-hidden transition"
+                onClick={(e) => {
+                  const rect = e.currentTarget.getBoundingClientRect();
+                  seek(((e.clientX - rect.left) / rect.width) * duration);
+                }}
+              >
+                <div className="bg-white group-hover:bg-[#1DB954] h-full rounded-full transition-all" style={{ width: `${progressPercent}%` }} />
+              </div>
+              <span>{formatTime(duration)}</span>
+            </div>
           </div>
 
-          <div className={`flex items-center justify-end space-x-3 ${isExpanded ? 'w-full justify-center space-x-6' : 'w-1/3'}`}>
-            <button onClick={() => setShowLyrics(true)} className="text-gray-400 hover:text-[#1DB954] p-1 transition" title="Xem Lời Bài Hát">
-              <Mic2 size={18} />
+          {/* Right: Tools & Volume */}
+          <div className={`flex items-center justify-end space-x-3 ${isExpanded ? 'w-full justify-center space-x-6' : 'w-1/4'}`}>
+            <button onClick={() => setShowLyrics(true)} className="text-gray-400 hover:text-white p-1 transition" title="Lyrics">
+              <Mic2 size={16} />
             </button>
 
-            <button onClick={() => setShowEQ(true)} className="text-gray-400 hover:text-[#1DB954] p-1 transition" title="Chỉnh âm Equalizer">
-              <Sliders size={18} />
+            <button onClick={() => setShowEQ(true)} className="text-gray-400 hover:text-white p-1 transition" title="Equalizer">
+              <Sliders size={16} />
             </button>
 
             <button onClick={handleDownloadToggle} className={`p-1 transition ${isDownloaded ? 'text-[#1DB954]' : 'text-gray-400 hover:text-white'}`}>
-              {isDownloaded ? <CheckCircle size={18} /> : <Download size={18} />}
+              {isDownloaded ? <CheckCircle size={16} /> : <Download size={16} />}
             </button>
 
-            <div className="hidden md:flex items-center space-x-2">
+            <div className="hidden lg:flex items-center space-x-2">
               <button onClick={toggleMute} className="text-gray-400 hover:text-white">
-                {isMuted || volume === 0 ? <VolumeX size={18} /> : <Volume2 size={18} />}
+                {isMuted || volume === 0 ? <VolumeX size={16} /> : <Volume2 size={16} />}
               </button>
               <input 
                 type="range"
@@ -134,16 +137,16 @@ export default function Player() {
                 step="0.05"
                 value={isMuted ? 0 : volume}
                 onChange={(e) => setVolume(Number(e.target.value))}
-                className="w-16 accent-[#1DB954] h-1.5 bg-white/20 rounded-lg cursor-pointer"
+                className="w-20 accent-[#1DB954] h-1 bg-[#4d4d4d] rounded-lg cursor-pointer"
               />
             </div>
 
             <div className="relative">
               <button 
                 onClick={() => setShowQualityMenu(!showQualityMenu)} 
-                className="flex items-center space-x-1 text-[10px] bg-white/10 px-2 py-1 rounded-full text-green-400 font-bold"
+                className="flex items-center space-x-1 text-[10px] bg-white/10 px-2 py-0.5 rounded text-green-400 font-bold"
               >
-                <Signal size={12} /><span className="uppercase">{quality}</span>
+                <Signal size={10} /><span className="uppercase">{quality}</span>
               </button>
 
               {showQualityMenu && (
@@ -157,7 +160,7 @@ export default function Player() {
             </div>
 
             <button onClick={() => setIsExpanded(!isExpanded)} className="text-gray-400 hover:text-white p-1">
-              {isExpanded ? <Minimize2 size={18} /> : <Maximize2 size={18} />}
+              {isExpanded ? <Minimize2 size={16} /> : <Maximize2 size={16} />}
             </button>
           </div>
         </div>
