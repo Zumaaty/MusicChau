@@ -1,5 +1,12 @@
 import { create } from 'zustand';
-import { Song } from './supabase';
+import { Song, VIETNAMESE_SONGS } from './musicData';
+import { eqEngine } from './equalizerEngine';
+
+interface Playlist {
+  id: string;
+  name: string;
+  songs: Song[];
+}
 
 interface AudioState {
   currentSong: Song | null;
@@ -7,14 +14,32 @@ interface AudioState {
   quality: 'low' | 'standard' | 'high';
   currentTime: number;
   duration: number;
+  volume: number;
+  isMuted: boolean;
+  isLoop: boolean;
+  isShuffle: boolean;
   queue: Song[];
+  favorites: Song[];
+  playlists: Playlist[];
+  searchQuery: string;
   mood: string;
+
+  // Actions
   setQuality: (quality: 'low' | 'standard' | 'high') => void;
   playSong: (song: Song, newQueue?: Song[]) => void;
   togglePlay: () => void;
   nextSong: () => void;
   prevSong: () => void;
   seek: (time: number) => void;
+  setVolume: (vol: number) => void;
+  toggleMute: () => void;
+  toggleLoop: () => void;
+  toggleShuffle: () => void;
+  toggleFavorite: (song: Song) => void;
+  createPlaylist: (name: string) => void;
+  addSongToPlaylist: (playlistId: string, song: Song) => void;
+  removePlaylist: (playlistId: string) => void;
+  setSearchQuery: (query: string) => void;
   setMood: (mood: string) => void;
 }
 
@@ -26,7 +51,13 @@ export const useAudioStore = create<AudioState>((set, get) => {
     audio.preload = 'metadata';
     audio.ontimeupdate = () => set({ currentTime: audio?.currentTime || 0 });
     audio.onloadedmetadata = () => set({ duration: audio?.duration || 0 });
-    audio.onended = () => get().nextSong();
+    audio.onended = () => {
+      if (get().isLoop && get().currentSong) {
+        get().playSong(get().currentSong!);
+      } else {
+        get().nextSong();
+      }
+    };
   }
 
   const updateMediaSession = (song: Song) => {
@@ -34,7 +65,7 @@ export const useAudioStore = create<AudioState>((set, get) => {
       navigator.mediaSession.metadata = new MediaMetadata({
         title: song.title,
         artist: song.artist,
-        album: 'Moodify',
+        album: 'Moodify Việt Nam',
         artwork: [{ src: song.albumCover, sizes: '512x512', type: 'image/jpeg' }],
       });
       navigator.mediaSession.setActionHandler('play', () => get().togglePlay());
@@ -50,19 +81,30 @@ export const useAudioStore = create<AudioState>((set, get) => {
     quality: 'standard',
     currentTime: 0,
     duration: 0,
-    queue: [],
-    mood: 'chill',
+    volume: 1,
+    isMuted: false,
+    isLoop: false,
+    isShuffle: false,
+    queue: VIETNAMESE_SONGS,
+    favorites: [],
+    playlists: [{ id: 'fav-pl', name: 'Nhạc Việt Yêu Thích 💖', songs: [] }],
+    searchQuery: '',
+    mood: 'all',
 
     setQuality: (quality) => set({ quality }),
 
     playSong: (song, newQueue) => {
       if (!audio) return;
+      try {
+        eqEngine.init(audio);
+      } catch {}
+
       audio.src = song.streamUrl;
       audio.play().then(() => {
         set({ currentSong: song, isPlaying: true });
         if (newQueue) set({ queue: newQueue });
         updateMediaSession(song);
-      }).catch(err => console.error("Playback error:", err));
+      }).catch(err => console.error("Lỗi phát nhạc:", err));
     },
 
     togglePlay: () => {
@@ -77,12 +119,18 @@ export const useAudioStore = create<AudioState>((set, get) => {
     },
 
     nextSong: () => {
-      const { queue, currentSong } = get();
+      const { queue, currentSong, isShuffle } = get();
       if (queue.length === 0) return;
+      
+      if (isShuffle) {
+        const randomIndex = Math.floor(Math.random() * queue.length);
+        get().playSong(queue[randomIndex]);
+        return;
+      }
+
       const currentIndex = queue.findIndex(s => s.id === currentSong?.id);
-      let nextIndex = (currentIndex + 1) % queue.length;
-      const next = queue[nextIndex];
-      if (next) get().playSong(next);
+      const nextIndex = (currentIndex + 1) % queue.length;
+      get().playSong(queue[nextIndex]);
     },
 
     prevSong: () => {
@@ -90,8 +138,7 @@ export const useAudioStore = create<AudioState>((set, get) => {
       if (queue.length === 0) return;
       const currentIndex = queue.findIndex(s => s.id === currentSong?.id);
       const prevIndex = currentIndex - 1 < 0 ? queue.length - 1 : currentIndex - 1;
-      const prev = queue[prevIndex];
-      if (prev) get().playSong(prev);
+      get().playSong(queue[prevIndex]);
     },
 
     seek: (time) => {
@@ -101,6 +148,49 @@ export const useAudioStore = create<AudioState>((set, get) => {
       }
     },
 
+    setVolume: (vol) => {
+      if (audio) {
+        audio.volume = vol;
+        set({ volume: vol, isMuted: vol === 0 });
+      }
+    },
+
+    toggleMute: () => {
+      if (!audio) return;
+      const muted = !get().isMuted;
+      audio.muted = muted;
+      set({ isMuted: muted });
+    },
+
+    toggleLoop: () => set((state) => ({ isLoop: !state.isLoop })),
+    toggleShuffle: () => set((state) => ({ isShuffle: !state.isShuffle })),
+
+    toggleFavorite: (song) => set((state) => {
+      const exists = state.favorites.some(s => s.id === song.id);
+      const newFavs = exists 
+        ? state.favorites.filter(s => s.id !== song.id)
+        : [...state.favorites, song];
+      return { favorites: newFavs };
+    }),
+
+    createPlaylist: (name) => set((state) => ({
+      playlists: [...state.playlists, { id: Date.now().toString(), name, songs: [] }]
+    })),
+
+    addSongToPlaylist: (playlistId, song) => set((state) => ({
+      playlists: state.playlists.map(pl => {
+        if (pl.id === playlistId && !pl.songs.some(s => s.id === song.id)) {
+          return { ...pl, songs: [...pl.songs, song] };
+        }
+        return pl;
+      })
+    })),
+
+    removePlaylist: (playlistId) => set((state) => ({
+      playlists: state.playlists.filter(pl => pl.id !== playlistId)
+    })),
+
+    setSearchQuery: (searchQuery) => set({ searchQuery }),
     setMood: (mood) => set({ mood }),
   };
 });
